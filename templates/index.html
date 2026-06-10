@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sneinsations World Cup</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pink-deep: #c2185b;
+    --pink-mid: #e91e8c;
+    --pink-bright: #ff4db8;
+    --pink-light: #ff80cc;
+    --pink-pale: #fce4ec;
+    --pink-glow: #ff69b4;
+    --gold: #ffd700;
+    --white: #ffffff;
+    --dark: #1a0010;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, #1a0010 0%, #2d0020 40%, #1a0010 100%);
+    min-height: 100vh;
+    color: var(--white);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Confetti Canvas */
+  #confetti-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Stars background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,105,180,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,105,180,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 15%, rgba(255,105,180,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 80%, rgba(255,105,180,0.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 50% 40%, rgba(255,105,180,0.2) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    padding: 30px 0 20px;
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--pink-light), var(--pink-bright), var(--gold), var(--pink-bright));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    line-height: 1;
+    filter: drop-shadow(0 0 20px rgba(255,77,184,0.5));
+  }
+
+  header p {
+    color: var(--pink-light);
+    font-size: 1.1rem;
+    margin-top: 8px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .main-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr 320px;
+    gap: 24px;
+    margin-top: 20px;
+    align-items: start;
+  }
+
+  /* ===== SPINNER SECTION ===== */
+  .spinner-section {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .current-player-badge {
+    background: linear-gradient(135deg, rgba(233,30,140,0.2), rgba(194,24,91,0.2));
+    border: 2px solid var(--pink-mid);
+    border-radius: 50px;
+    padding: 10px 28px;
+    text-align: center;
+    min-width: 280px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 30px rgba(233,30,140,0.2);
+  }
+
+  .current-player-badge .spinning-for {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--pink-light);
+    font-weight: 700;
+  }
+
+  .current-player-badge .player-name-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    color: var(--white);
+  }
+
+  .current-player-badge .player-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--pink-mid);
+    object-fit: cover;
+    margin: 4px auto;
+    display: block;
+  }
+
+  .current-player-badge .player-avatar-placeholder {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--pink-mid);
+    background: linear-gradient(135deg, var(--pink-deep), var(--pink-mid));
+    margin: 4px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+  }
+
+  /* Wheel Container */
+  .wheel-wrapper {
+    position: relative;
+    width: 480px;
+    height: 480px;
+  }
+
+  .wheel-pointer {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-top: 40px solid #ffffff;
+    z-index: 10;
+    filter: drop-shadow(0 4px 12px rgba(255,255,255,0.8));
+  }
+
+  .wheel-outer-ring {
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    background: conic-gradient(
+      var(--pink-deep), var(--pink-mid), var(--pink-bright),
+      var(--pink-light), var(--gold), var(--pink-bright),
+      var(--pink-mid), var(--pink-deep)
+    );
+    animation: ringRotate 8s linear infinite;
+    box-shadow: 0 0 40px rgba(255,77,184,0.5);
+  }
+
+  @keyframes ringRotate {
+    to { transform: rotate(360deg); }
+  }
+
+  .wheel-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+
+  #spinnerCanvas {
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 6px rgba(255,77,184,0.3),
+      0 0 60px rgba(255,77,184,0.4),
+      0 20px 60px rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  #spinnerCanvas:hover {
+    transform: scale(1.02);
+  }
+
+  .center-hub {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--pink-bright), var(--pink-deep));
+    border: 4px solid var(--pink-light);
+    z-index: 10;
+    box-shadow: 0 0 20px rgba(255,77,184,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .center-hub:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 0 30px rgba(255,77,184,1);
+  }
+
+  /* Spin Button */
+  #spinBtn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 3px;
+    padding: 16px 60px;
+    background: linear-gradient(135deg, var(--pink-mid), var(--pink-deep));
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    box-shadow: 0 8px 30px rgba(233,30,140,0.5);
+    text-transform: uppercase;
+  }
+
+  #spinBtn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.4s;
+  }
+
+  #spinBtn:hover::before { left: 100%; }
+
+  #spinBtn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(233,30,140,0.7);
+  }
+
+  #spinBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Result Display */
+  #result-display {
+    display: none;
+    text-align: center;
+    animation: resultPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: linear-gradient(135deg, rgba(233,30,140,0.15), rgba(194,24,91,0.15));
+    border: 2px solid var(--pink-mid);
+    border-radius: 20px;
+    padding: 20px 40px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 40px rgba(255,77,184,0.3);
+    width: 100%;
+  }
+
+  @keyframes resultPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .result-flag { font-size: 4rem; line-height: 1; }
+  .result-team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin: 4px 0;
+  }
+  .result-assigned-to {
+    font-size: 0.9rem;
+    color: var(--pink-light);
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  /* ===== PLAYERS PANEL ===== */
+  .panel {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,77,184,0.2);
+    border-radius: 20px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+  }
+
+  .panel h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    color: var(--pink-bright);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,77,184,0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Add Player Form */
+  .add-player-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .add-player-form input[type="text"] {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,77,184,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .add-player-form input[type="text"]:focus {
+    border-color: var(--pink-bright);
+    box-shadow: 0 0 10px rgba(255,77,184,0.3);
+  }
+
+  .add-player-form input[type="text"]::placeholder {
+    color: rgba(255,255,255,0.3);
+  }
+
+  .photo-upload-area {
+    border: 2px dashed rgba(255,77,184,0.4);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .photo-upload-area:hover {
+    border-color: var(--pink-bright);
+    background: rgba(255,77,184,0.05);
+  }
+
+  .photo-upload-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .photo-preview {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--pink-mid);
+    display: none;
+    margin: 0 auto 6px;
+  }
+
+  .upload-icon { font-size: 1.4rem; }
+  .upload-text { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+
+  .btn-add-player {
+    background: linear-gradient(135deg, var(--pink-mid), var(--pink-deep));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .btn-add-player:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(233,30,140,0.4);
+  }
+
+  /* Players List */
+  .players-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pink-mid) transparent;
+  }
+
+  .player-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,77,184,0.1);
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .player-item.active {
+    background: rgba(233,30,140,0.15);
+    border-color: var(--pink-bright);
+    box-shadow: 0 0 15px rgba(255,77,184,0.2);
+  }
+
+  .player-item.done {
+    opacity: 0.6;
+  }
+
+  .player-item.done::after {
+    content: '✓';
+    position: absolute;
+    right: 10px;
+    color: #4caf50;
+    font-weight: 900;
+    font-size: 1rem;
+  }
+
+  .player-item img,
+  .player-avatar-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255,77,184,0.4);
+    flex-shrink: 0;
+  }
+
+  .player-avatar-icon {
+    background: linear-gradient(135deg, var(--pink-deep), var(--pink-mid));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+  }
+
+  .player-info { flex: 1; min-width: 0; }
+  .player-info .pname {
+    font-weight: 700;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .player-info .pteam {
+    font-size: 0.75rem;
+    color: var(--pink-light);
+    margin-top: 1px;
+  }
+
+  .active-label {
+    background: var(--pink-bright);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .btn-reset {
+    margin-top: 12px;
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(255,77,184,0.3);
+    color: var(--pink-light);
+    border-radius: 10px;
+    padding: 8px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .btn-reset:hover {
+    border-color: var(--pink-bright);
+    color: var(--pink-bright);
+    background: rgba(255,77,184,0.05);
+  }
+
+  /* ===== RESULTS PANEL ===== */
+  .results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 540px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pink-mid) transparent;
+  }
+
+  .result-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,77,184,0.1);
+    animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .result-item .flag { font-size: 1.6rem; }
+  .result-item .ri-player { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+  .result-item .ri-team { font-size: 0.9rem; font-weight: 700; color: var(--pink-light); }
+
+  .no-results {
+    text-align: center;
+    color: rgba(255,255,255,0.3);
+    font-size: 0.9rem;
+    padding: 30px 0;
+  }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--pink-mid), var(--pink-bright));
+    border-radius: 20px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(255,77,184,0.5);
+  }
+
+  .no-players-msg {
+    text-align: center;
+    color: rgba(255,255,255,0.3);
+    font-size: 0.85rem;
+    padding: 20px 0;
+  }
+
+  /* All done */
+  #all-done {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    animation: resultPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  #all-done .done-emoji { font-size: 3rem; }
+  #all-done h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--gold);
+    letter-spacing: 2px;
+  }
+  #all-done p { color: var(--pink-light); font-size: 0.9rem; }
+
+  @media (max-width: 1100px) {
+    .main-layout {
+      grid-template-columns: 1fr;
+    }
+    .spinner-section { grid-column: 1; }
+    .wheel-wrapper { width: 380px; height: 380px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div class="container">
+  <header>
+    <h1>Sneinsations World Cup</h1>
+    <p>Spin to assign teams to your players</p>
+  </header>
+
+  <div class="main-layout">
+
+    <!-- LEFT: Players Setup -->
+    <div class="panel">
+      <h2>👥 Players</h2>
+
+      <div class="add-player-form">
+        <input type="text" id="playerNameInput" placeholder="Enter player name..." />
+        <div class="photo-upload-area" id="uploadArea">
+          <input type="file" id="photoInput" accept="image/*" />
+          <img id="photoPreview" class="photo-preview" alt="preview" />
+          <div class="upload-icon">📸</div>
+          <div class="upload-text">Click to upload photo (optional)</div>
+        </div>
+        <button class="btn-add-player" onclick="addPlayer()">+ Add Player</button>
+      </div>
+
+      <div id="playersList" class="players-list">
+        <div class="no-players-msg">No players yet.<br>Add some above! ⬆️</div>
+      </div>
+
+      <button class="btn-reset" onclick="resetAll()">🔄 Reset All</button>
+    </div>
+
+    <!-- CENTER: Spinner -->
+    <div class="spinner-section">
+
+      <div class="current-player-badge" id="currentPlayerBadge">
+        <div class="spinning-for">Spinning for</div>
+        <div class="player-avatar-placeholder" id="badgeAvatar">⚽</div>
+        <div class="player-name-display" id="badgePlayerName">Add Players First</div>
+      </div>
+
+      <div class="wheel-wrapper">
+        <div class="wheel-pointer"></div>
+        <div class="wheel-outer-ring"></div>
+        <div class="wheel-container">
+          <canvas id="spinnerCanvas" width="480" height="480"></canvas>
+          <div class="center-hub" onclick="startSpin()">⚽</div>
+        </div>
+      </div>
+
+      <button id="spinBtn" onclick="startSpin()">🎯 SPIN!</button>
+
+      <div id="result-display">
+        <div class="result-flag" id="resultFlag">🏆</div>
+        <div class="result-team-name" id="resultTeam">Team Name</div>
+        <div class="result-assigned-to" id="resultAssigned">Assigned to Player</div>
+      </div>
+
+      <div id="all-done">
+        <div class="done-emoji">🏆</div>
+        <h3>All Teams Assigned!</h3>
+        <p>Every player has their World Cup team</p>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div class="panel">
+      <h2>🏆 Results</h2>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+      </div>
+      <div id="resultsList" class="results-list">
+        <div class="no-results">No results yet.<br>Spin the wheel! 🎡</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const ALL_TEAMS = {{ teams | tojson }};
+let remainingTeams = [...ALL_TEAMS]; // shrinks as teams are assigned
+let players = [];
+let currentPlayerIdx = 0;
+let isSpinning = false;
+let currentAngle = 0;
+let pendingPhotoData = null;
+
+// ===== CANVAS SETUP =====
+const canvas = document.getElementById('spinnerCanvas');
+const ctx = canvas.getContext('2d');
+
+// These update as teams are removed
+function getNumSegments() { return remainingTeams.length; }
+function getSlice() { return (Math.PI * 2) / remainingTeams.length; }
+
+const PINKS = [
+  '#c2185b','#e91e8c','#f06292','#ad1457','#f48fb1',
+  '#880e4f','#ff4081','#ec407a','#d81b60','#f50057',
+  '#ff80ab','#c51162','#ff6090','#ff80cc','#e91e63',
+  '#fce4ec','#f8bbd0','#ff4db8','#ff69b4','#db7093',
+  '#ff1493','#c71585','#e75480','#de3163','#fc0fc0',
+  '#ff007f','#ff6eb4','#ffb6c1','#ff82ab','#ea3c53',
+  '#f4339f','#f0134d','#e91e8c','#c2185b','#ff4db8',
+  '#ad1457','#f06292','#880e4f','#ff80cc','#d81b60',
+  '#ff69b4','#c71585','#ff1493','#f48fb1','#e75480',
+  '#ff82ab','#fc0fc0','#ff007f',
+];
+
+// ===== FLAG IMAGE PRELOADING =====
+// Convert team name to filename slug: lowercase, spaces→underscores, strip special chars
+function teamSlug(name) {
+  return name.toLowerCase()
+    .replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e')
+    .replace(/[ìíîï]/g, 'i').replace(/[òóôõö]/g, 'o')
+    .replace(/[ùúûü]/g, 'u').replace(/ç/g, 'c').replace(/ñ/g, 'n')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+const flagImages = {}; // slug → HTMLImageElement (loaded) or null (failed)
+
+function preloadFlags(teams) {
+  return Promise.all(teams.map(team => new Promise(resolve => {
+    const slug = teamSlug(team.name);
+    const img = new Image();
+    img.onload = () => { flagImages[slug] = img; resolve(); };
+    img.onerror = () => { flagImages[slug] = null; resolve(); }; // will fall back to emoji
+    img.src = `/res/flags/${slug}.png`;
+  })));
+}
+
+function drawFlagOnCanvas(ctx, teamIdx, midAngle, r) {
+  const team = remainingTeams[teamIdx];
+  const slug = teamSlug(team.name);
+  const img = flagImages[slug];
+  const flagX = r - 10;
+  const flagH = r > 200 ? 14 : 11;
+  const flagW = flagH * 1.5;
+
+  if (img) {
+    // Draw PNG flag clipped to a small rounded rect
+    ctx.save();
+    const x = flagX - flagW;
+    const y = -flagH / 2;
+    const rx = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + rx, y);
+    ctx.lineTo(x + flagW - rx, y);
+    ctx.arcTo(x + flagW, y, x + flagW, y + rx, rx);
+    ctx.lineTo(x + flagW, y + flagH - rx);
+    ctx.arcTo(x + flagW, y + flagH, x + flagW - rx, y + flagH, rx);
+    ctx.lineTo(x + rx, y + flagH);
+    ctx.arcTo(x, y + flagH, x, y + flagH - rx, rx);
+    ctx.lineTo(x, y + rx);
+    ctx.arcTo(x, y, x + rx, y, rx);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(img, x, y, flagW, flagH);
+    ctx.restore();
+    return flagX - flagW - 4; // name starts to the left of the image
+  } else {
+    // Emoji fallback
+    ctx.font = `${r > 200 ? 16 : 13}px serif`;
+    ctx.fillStyle = 'white';
+    ctx.fillText(team.flag, flagX, 5);
+    return flagX - 22;
+  }
+}
+
+function drawWheel(angle) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const r = cx - 4;
+  const numSeg = getNumSegments();
+  const slice = getSlice();
+
+  for (let i = 0; i < numSeg; i++) {
+    const start = angle + i * slice;
+    const end = start + slice;
+
+    // Slice background
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.closePath();
+    ctx.fillStyle = PINKS[i % PINKS.length];
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Text + flag, rotated to sit along the slice
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + slice / 2);
+    ctx.textAlign = 'right';
+
+    // Flag (PNG or emoji) — returns x position where name should end
+    const nameEndX = drawFlagOnCanvas(ctx, i, start + slice / 2, r);
+
+    // Team name
+    ctx.font = `bold ${r > 200 ? 11 : 9}px Nunito, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(remainingTeams[i].name, nameEndX, 5);
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+  }
+
+  // Outer glow ring
+  const grad = ctx.createRadialGradient(cx, cy, r - 8, cx, cy, r + 4);
+  grad.addColorStop(0, 'rgba(255,77,184,0.0)');
+  grad.addColorStop(1, 'rgba(255,77,184,0.3)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 8;
+  ctx.stroke();
+}
+
+// Preload all flags, then draw. Redraw as each image loads so they appear progressively.
+preloadFlags(ALL_TEAMS).then(() => drawWheel(currentAngle));
+// Draw immediately with emoji fallback while images load
+drawWheel(0);
+
+// ===== SPINNING LOGIC =====
+function startSpin() {
+  if (isSpinning) return;
+  if (players.length === 0) {
+    alert('Please add at least one player first!');
+    return;
+  }
+  if (remainingTeams.length === 0) return;
+
+  isSpinning = true;
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('result-display').style.display = 'none';
+
+  // Pick a random team from what's left on the wheel
+  const targetIdx = Math.floor(Math.random() * remainingTeams.length);
+  const slice = getSlice();
+
+  // Pointer is at the TOP (−π/2). Always start from angle=0.
+  // finalAngle must be negative (clockwise). Guarantee at least 10 full rotations.
+  const minSpins = 10;
+  const extraSpins = (minSpins + Math.random() * 5) * Math.PI * 2;
+  const baseTarget = -Math.PI / 2 - targetIdx * slice - slice / 2;
+  // Shift baseTarget to be in (−2π, 0] so it's a small negative offset
+  const normTarget = ((baseTarget % (Math.PI * 2)) - Math.PI * 2);
+  const finalAngle = normTarget - extraSpins; // always large negative = clockwise
+
+  const duration = 5000 + Math.random() * 1500;
+  const startTime = performance.now();
+  currentAngle = 0; // always start fresh so spin distance is predictable
+
+  function easeOut(t) {
+    return 1 - Math.pow(1 - t, 5); // steeper ease = more dramatic slowdown
+  }
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = easeOut(progress);
+
+    currentAngle = finalAngle * eased;
+    drawWheel(currentAngle);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      currentAngle = finalAngle;
+      drawWheel(currentAngle);
+      // Re-derive winner from actual resting angle (belt-and-suspenders)
+      const s = getSlice();
+      let pointerOnWheel = (-Math.PI / 2 - currentAngle) % (Math.PI * 2);
+      if (pointerOnWheel < 0) pointerOnWheel += Math.PI * 2;
+      const actualIdx = Math.floor(pointerOnWheel / s) % remainingTeams.length;
+      onSpinComplete(remainingTeams[actualIdx]);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+async function onSpinComplete(team) {
+  isSpinning = false;
+
+  // Remove this team from the wheel immediately
+  remainingTeams = remainingTeams.filter(t => t.name !== team.name);
+  currentAngle = 0;
+  drawWheel(0);
+
+  // Assign to current player (round-robin)
+  const player = players[currentPlayerIdx % players.length];
+  player.teams.push(team);
+
+  // Update via API
+  await fetch(`/api/players/${player.id}/assign`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({team})
+  });
+
+  // Show result
+  const slug = teamSlug(team.name);
+  const flagImg = flagImages[slug];
+  const resultFlagEl = document.getElementById('resultFlag');
+  if (flagImg) {
+    resultFlagEl.innerHTML = `<img src="/res/flags/${slug}.png" style="width:72px;height:48px;object-fit:cover;border-radius:6px;border:2px solid rgba(255,255,255,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.4);" alt="${team.name}" />`;
+  } else {
+    resultFlagEl.textContent = team.flag;
+  }
+  document.getElementById('resultTeam').textContent = team.name;
+  document.getElementById('resultAssigned').textContent = `🎉 Assigned to ${player.name}!`;
+  document.getElementById('result-display').style.display = 'block';
+
+  // Add to results list
+  addResultItem(player, team);
+
+  // Fire confetti!
+  fireConfetti();
+
+  // Advance to next player (round-robin)
+  currentPlayerIdx++;
+  renderPlayers();
+  updateProgress();
+
+  // Check if all teams are now assigned
+  if (remainingTeams.length === 0) {
+    setTimeout(() => {
+      document.getElementById('spinBtn').style.display = 'none';
+      document.getElementById('all-done').style.display = 'block';
+      document.getElementById('result-display').style.display = 'none';
+    }, 2000);
+  } else {
+    setTimeout(() => {
+      document.getElementById('spinBtn').disabled = false;
+      updateCurrentPlayerBadge();
+    }, 1500);
+  }
+}
+
+// ===== PLAYER MANAGEMENT =====
+document.getElementById('photoInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    pendingPhotoData = ev.target.result;
+    const preview = document.getElementById('photoPreview');
+    preview.src = pendingPhotoData;
+    preview.style.display = 'block';
+    document.querySelector('.upload-icon').style.display = 'none';
+    document.querySelector('.upload-text').textContent = 'Photo ready!';
+  };
+  reader.readAsDataURL(file);
+});
+
+async function addPlayer() {
+  const nameInput = document.getElementById('playerNameInput');
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+
+  const res = await fetch('/api/players', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name, photo: pendingPhotoData || ''})
+  });
+  players = await res.json();
+
+  // Reset form
+  nameInput.value = '';
+  pendingPhotoData = null;
+  document.getElementById('photoPreview').style.display = 'none';
+  document.querySelector('.upload-icon').style.display = 'block';
+  document.querySelector('.upload-text').textContent = 'Click to upload photo (optional)';
+  document.getElementById('photoInput').value = '';
+
+  renderPlayers();
+  updateCurrentPlayerBadge();
+  document.getElementById('spinBtn').disabled = false;
+}
+
+document.getElementById('playerNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addPlayer();
+});
+
+async function resetAll() {
+  if (!confirm('Reset all players and results?')) return;
+  await fetch('/api/players/reset', {method: 'POST'});
+  players = [];
+  currentPlayerIdx = 0;
+  remainingTeams = [...ALL_TEAMS];
+  currentAngle = 0;
+  drawWheel(0);
+  document.getElementById('spinBtn').disabled = false;
+  document.getElementById('spinBtn').style.display = '';
+  document.getElementById('all-done').style.display = 'none';
+  document.getElementById('result-display').style.display = 'none';
+  document.getElementById('resultsList').innerHTML = '<div class="no-results">No results yet.<br>Spin the wheel! 🎡</div>';
+  renderPlayers();
+  updateCurrentPlayerBadge();
+  updateProgress();
+}
+
+function renderPlayers() {
+  const list = document.getElementById('playersList');
+  if (players.length === 0) {
+    list.innerHTML = '<div class="no-players-msg">No players yet.<br>Add some above! ⬆️</div>';
+    return;
+  }
+
+  const activePlayer = players[currentPlayerIdx % players.length];
+
+  list.innerHTML = players.map((p) => {
+    const isActive = p === activePlayer;
+    const avatarHtml = p.photo
+      ? `<img src="${p.photo}" alt="${p.name}" />`
+      : `<div class="player-avatar-icon">👤</div>`;
+    const teamsHtml = p.teams && p.teams.length > 0
+      ? p.teams.map(t => `<div class="pteam" style="display:flex;align-items:center;gap:4px;">${flagImgHtml(t, 18)}<span>${t.name}</span></div>`).join('')
+      : '<div class="pteam">Waiting...</div>';
+    return `
+      <div class="player-item ${isActive ? 'active' : ''}">
+        ${avatarHtml}
+        <div class="player-info">
+          <div class="pname">${p.name}</div>
+          ${teamsHtml}
+        </div>
+        ${isActive ? '<span class="active-label">Next</span>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function updateCurrentPlayerBadge() {
+  const badge = document.getElementById('currentPlayerBadge');
+  if (players.length === 0) {
+    document.getElementById('badgePlayerName').textContent = 'Add Players First';
+    document.getElementById('badgeAvatar').innerHTML = '⚽';
+    return;
+  }
+  const p = players[currentPlayerIdx % players.length];
+  document.getElementById('badgePlayerName').textContent = p.name;
+  const avatarEl = document.getElementById('badgeAvatar');
+  if (p.photo) {
+    badge.querySelector('.player-avatar-placeholder')?.remove();
+    const img = document.createElement('img');
+    img.src = p.photo;
+    img.className = 'player-avatar';
+    img.alt = p.name;
+    // Replace badgeAvatar
+    const old = document.getElementById('badgeAvatar');
+    if (old) old.replaceWith(img);
+  } else {
+    // Ensure placeholder exists
+    let av = document.getElementById('badgeAvatar');
+    if (!av) {
+      av = document.createElement('div');
+      av.id = 'badgeAvatar';
+      av.className = 'player-avatar-placeholder';
+      badge.querySelector('.spinning-for').after(av);
+    }
+    av.className = 'player-avatar-placeholder';
+    av.textContent = '👤';
+  }
+}
+
+function flagImgHtml(team, size = 28) {
+  const slug = teamSlug(team.name);
+  const img = flagImages[slug];
+  if (img) {
+    return `<img src="/res/flags/${slug}.png" style="width:${size}px;height:${Math.round(size*0.67)}px;object-fit:cover;border-radius:3px;border:1px solid rgba(255,255,255,0.2);flex-shrink:0;" alt="${team.name}" />`;
+  }
+  return `<span style="font-size:${Math.round(size*0.7)}px;line-height:1;">${team.flag}</span>`;
+}
+
+function addResultItem(player, team) {
+  const list = document.getElementById('resultsList');
+  const noResults = list.querySelector('.no-results');
+  if (noResults) noResults.remove();
+
+  const avatarHtml = player.photo
+    ? `<img src="${player.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,77,184,0.4);flex-shrink:0;" />`
+    : `<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#c2185b,#e91e8c);display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">👤</div>`;
+
+  const item = document.createElement('div');
+  item.className = 'result-item';
+  item.innerHTML = `
+    ${avatarHtml}
+    <div style="flex:1;min-width:0;">
+      <div class="ri-player">${player.name}</div>
+      <div class="ri-team" style="display:flex;align-items:center;gap:6px;">
+        ${flagImgHtml(team, 26)}
+        <span>${team.name}</span>
+      </div>
+    </div>
+  `;
+  list.insertBefore(item, list.firstChild);
+}
+
+function updateProgress() {
+  const used = players.flatMap(p => p.teams || []).length;
+  const pct = (used / ALL_TEAMS.length) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ===== CONFETTI =====
+const confettiCanvas = document.getElementById('confetti-canvas');
+const cCtx = confettiCanvas.getContext('2d');
+confettiCanvas.width = window.innerWidth;
+confettiCanvas.height = window.innerHeight;
+window.addEventListener('resize', () => {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+});
+
+const CONFETTI_COLORS = [
+  '#ff4db8','#ff80cc','#fce4ec','#f06292','#f48fb1',
+  '#ffffff','#ffd700','#e91e8c','#ff1493','#ff69b4',
+  '#ffb6c1','#c2185b','#ff82ab','#ffc0cb'
+];
+
+let confettiPieces = [];
+let confettiActive = false;
+let confettiTimer = null;
+
+function fireConfetti() {
+  // Spawn burst from top
+  for (let i = 0; i < 200; i++) {
+    confettiPieces.push({
+      x: Math.random() * confettiCanvas.width,
+      y: -10 - Math.random() * 100,
+      w: 8 + Math.random() * 10,
+      h: 4 + Math.random() * 6,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      vx: (Math.random() - 0.5) * 4,
+      vy: 2 + Math.random() * 5,
+      angle: Math.random() * Math.PI * 2,
+      angularV: (Math.random() - 0.5) * 0.3,
+      opacity: 1,
+      shape: Math.random() > 0.5 ? 'rect' : 'circle',
+      life: 1,
+    });
+  }
+
+  if (!confettiActive) {
+    confettiActive = true;
+    animateConfetti();
+  }
+
+  clearTimeout(confettiTimer);
+  confettiTimer = setTimeout(() => { confettiActive = false; }, 5000);
+}
+
+function animateConfetti() {
+  cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+  confettiPieces = confettiPieces.filter(p => p.opacity > 0.05 && p.y < confettiCanvas.height + 50);
+
+  for (const p of confettiPieces) {
+    cCtx.save();
+    cCtx.globalAlpha = p.opacity;
+    cCtx.translate(p.x, p.y);
+    cCtx.rotate(p.angle);
+    cCtx.fillStyle = p.color;
+
+    if (p.shape === 'circle') {
+      cCtx.beginPath();
+      cCtx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+      cCtx.fill();
+    } else {
+      cCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    }
+    cCtx.restore();
+
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.08;
+    p.vx += (Math.random() - 0.5) * 0.1;
+    p.angle += p.angularV;
+
+    if (p.y > confettiCanvas.height * 0.8) {
+      p.opacity -= 0.02;
+    }
+  }
+
+  if (confettiPieces.length > 0 || confettiActive) {
+    requestAnimationFrame(animateConfetti);
+  } else {
+    cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  }
+}
+
+// Init
+renderPlayers();
+updateCurrentPlayerBadge();
+</script>
+</body>
+</html>
